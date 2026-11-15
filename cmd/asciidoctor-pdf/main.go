@@ -43,7 +43,8 @@ Example: asciidoctor-pdf input.adoc
     -b, -e, -s, -r, -I, -T, -E and --sourcemap are accepted for compatibility and ignored.
 `
 
-const toolVersion = "0.1.0"
+// toolVersion はこのツールのバージョンです。リリース時は -ldflags "-X main.toolVersion=..." で上書きします。
+var toolVersion = "dev"
 
 type options struct {
 	attrs       map[string]string

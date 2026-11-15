@@ -1,0 +1,9 @@
+# Windows のランナーでも改行を LF のまま取り出す (テストの期待値を OS で変えないため)
+* text=auto eol=lf
+
+# バイナリファイルは改行変換しない
+*.pdf binary
+*.ttf binary
+*.png binary
+*.jpg binary
+*.gif binary

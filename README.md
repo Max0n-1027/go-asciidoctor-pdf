@@ -1,11 +1,23 @@
 # go-asciidoctor-pdf
 
+[![CI](https://github.com/Max0n-1027/go-asciidoctor-pdf/actions/workflows/ci.yml/badge.svg)](https://github.com/Max0n-1027/go-asciidoctor-pdf/actions/workflows/ci.yml)
+
 [Asciidoctor PDF](https://github.com/asciidoctor/asciidoctor-pdf) 互換の AsciiDoc → PDF コンバーターを Go で実装したものです。
 Ruby も外部コマンドも不要で、単一バイナリとして Linux / macOS / Windows で動作します。
 
 ## インストール
 
-Go 1.26.8 以降が必要です (Go 1.21 以降なら、必要なツールチェーンが自動で取得されます)。
+[Releases](https://github.com/Max0n-1027/go-asciidoctor-pdf/releases) から OS とアーキテクチャに合ったアーカイブを
+ダウンロードして展開し、`asciidoctor-pdf` (Windows では `asciidoctor-pdf.exe`) を PATH の通った場所に置いてください。
+Linux / macOS / Windows それぞれの amd64 と arm64 向けを用意しています。`SHA256SUMS` でファイルを検証できます。
+
+macOS のバイナリは署名していないため、ブラウザでダウンロードした場合は初回実行前に次のコマンドで隔離属性を外してください。
+
+```bash
+xattr -d com.apple.quarantine asciidoctor-pdf
+```
+
+Go の環境がある場合は `go install` でも入れられます。Go 1.26.8 以降が必要です (Go 1.21 以降なら、必要なツールチェーンが自動で取得されます)。
 
 ```bash
 go install github.com/Max0n-1027/go-asciidoctor-pdf/cmd/asciidoctor-pdf@latest
@@ -19,6 +31,27 @@ CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o bin/asciidoctor-pdf ./cmd/a
 
 他の OS 向けには `GOOS` / `GOARCH` を指定します (例: `GOOS=windows GOARCH=amd64`)。
 テーマ・フォント・アイコンはすべてバイナリに埋め込まれます。
+
+リリースと同じ配布物 (全プラットフォームのアーカイブと `SHA256SUMS`) は次のコマンドで `dist/` に作れます。
+
+```bash
+scripts/dist.sh
+```
+
+## CI とリリース
+
+- **CI** (`.github/workflows/ci.yml`): main への push とプルリクエストごとに、gofmt / go vet / go.mod の整合性を確認し、
+  Linux・macOS・Windows でテストと実際の変換を行います。配布物のビルドも確認し、成果物 `dist` として 7 日間保存します。
+- **リリース** (`.github/workflows/release.yml`): `v` で始まるタグを push すると、テストの後で全プラットフォームの配布物を作り、
+  GitHub リリースに添付します。リリースノートは自動生成で、`v0.2.0-rc.1` のようにハイフンを含むタグはプレリリースになります。
+
+```bash
+git tag v0.1.0
+```
+
+```bash
+git push origin v0.1.0
+```
 
 ## 使い方
 

@@ -1,0 +1,42 @@
+name: Release
+
+# v で始まるタグ (例: v0.1.0) を push すると、各 OS 向けのバイナリをビルドして GitHub リリースに添付します。
+# ハイフンを含むタグ (例: v0.2.0-rc.1) はプレリリースになります。
+# 既にリリースがある場合 (Web 画面でタグごと作成した場合など) は、そのリリースに配布物を追加します。
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+
+jobs:
+  release:
+    name: Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: go test
+        run: go test ./...
+      - name: 配布物の作成
+        run: scripts/dist.sh "$GITHUB_REF_NAME"
+      - name: GitHub リリースへの公開
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            flags=()
+            case "$TAG" in *-*) flags+=(--prerelease) ;; esac
+            gh release create "$TAG" dist/* --title "$TAG" --generate-notes --verify-tag "${flags[@]}"
+          fi
