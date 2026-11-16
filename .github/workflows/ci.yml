@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "次のファイルが gofmt で整形されていません:"
+            echo "$unformatted"
+            exit 1
+          fi
+      - name: go vet
+        run: go vet ./...
+      - name: go.mod / go.sum
+        run: go mod tidy -diff
+
+  test:
+    name: Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: go test
+        run: go test ./...
+      - name: 実際にコマンドで変換できること
+        shell: bash
+        run: |
+          go build -o bin/ ./cmd/asciidoctor-pdf
+          bin/asciidoctor-pdf -V
+          bin/asciidoctor-pdf testdata/examples/chronicles-example.adoc -o chronicles.pdf
+          printf '= テスト\n\n日本語の本文です。\n' > ja.adoc
+          bin/asciidoctor-pdf -a pdf-theme=default-with-font-fallbacks -a scripts=cjk ja.adoc
+          for f in chronicles.pdf ja.pdf; do
+            head -c 5 "$f" | grep -q '%PDF-' || { echo "$f is not a PDF"; exit 1; }
+          done
+
+  dist:
+    name: Build release archives
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: 配布物の作成
+        run: scripts/dist.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
